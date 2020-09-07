@@ -1,7 +1,7 @@
 {
-  "name": "HELP Token",
+  "name": "help-token",
   "version": "1.0.0",
-  "description": "",
+  "description": "Smart Contract for HELP Token",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
@@ -12,5 +12,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.43",
+    "openzeppelin-solidity": "^3.1.0"
+  }
 }
