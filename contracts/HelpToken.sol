@@ -44,9 +44,7 @@ interface IERC20 {
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
@@ -55,10 +53,7 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -103,11 +98,7 @@ interface IERC20 {
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 //
@@ -137,7 +128,7 @@ library SafeMath {
      */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
+        require(c >= a, 'SafeMath: addition overflow');
 
         return c;
     }
@@ -153,7 +144,7 @@ library SafeMath {
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
+        return sub(a, b, 'SafeMath: subtraction overflow');
     }
 
     /**
@@ -196,7 +187,7 @@ library SafeMath {
         }
 
         uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
+        require(c / a == b, 'SafeMath: multiplication overflow');
 
         return c;
     }
@@ -214,7 +205,7 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
+        return div(a, b, 'SafeMath: division by zero');
     }
 
     /**
@@ -254,7 +245,7 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
+        return mod(a, b, 'SafeMath: modulo by zero');
     }
 
     /**
@@ -307,9 +298,7 @@ library Address {
         // for accounts without code, i.e. `keccak256('')`
         bytes32 codehash;
 
-
-            bytes32 accountHash
-         = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
         // solhint-disable-next-line no-inline-assembly
         assembly {
             codehash := extcodehash(account)
@@ -334,17 +323,11 @@ library Address {
      * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
      */
     function sendValue(address payable recipient, uint256 amount) internal {
-        require(
-            address(this).balance >= amount,
-            "Address: insufficient balance"
-        );
+        require(address(this).balance >= amount, 'Address: insufficient balance');
 
         // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
-        (bool success, ) = recipient.call{value: amount}("");
-        require(
-            success,
-            "Address: unable to send value, recipient may have reverted"
-        );
+        (bool success, ) = recipient.call{value: amount}('');
+        require(success, 'Address: unable to send value, recipient may have reverted');
     }
 
     /**
@@ -365,11 +348,8 @@ library Address {
      *
      * _Available since v3.1._
      */
-    function functionCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
-    {
-        return functionCall(target, data, "Address: low-level call failed");
+    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
+        return functionCall(target, data, 'Address: low-level call failed');
     }
 
     /**
@@ -402,13 +382,7 @@ library Address {
         bytes memory data,
         uint256 value
     ) internal returns (bytes memory) {
-        return
-            functionCallWithValue(
-                target,
-                data,
-                value,
-                "Address: low-level call with value failed"
-            );
+        return functionCallWithValue(target, data, value, 'Address: low-level call with value failed');
     }
 
     /**
@@ -423,10 +397,7 @@ library Address {
         uint256 value,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(
-            address(this).balance >= value,
-            "Address: insufficient balance for call"
-        );
+        require(address(this).balance >= value, 'Address: insufficient balance for call');
         return _functionCallWithValue(target, data, value, errorMessage);
     }
 
@@ -436,12 +407,10 @@ library Address {
         uint256 weiValue,
         string memory errorMessage
     ) private returns (bytes memory) {
-        require(isContract(target), "Address: call to non-contract");
+        require(isContract(target), 'Address: call to non-contract');
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returndata) = target.call{value: weiValue}(
-            data
-        );
+        (bool success, bytes memory returndata) = target.call{value: weiValue}(data);
         if (success) {
             return returndata;
         } else {
@@ -569,12 +538,7 @@ contract ERC20 is Context, IERC20 {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -582,13 +546,7 @@ contract ERC20 is Context, IERC20 {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender)
-        public
-        virtual
-        override
-        view
-        returns (uint256)
-    {
+    function allowance(address owner, address spender) public virtual override view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -599,12 +557,7 @@ contract ERC20 is Context, IERC20 {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -627,14 +580,7 @@ contract ERC20 is Context, IERC20 {
         uint256 amount
     ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "ERC20: transfer amount exceeds allowance"
-            )
-        );
+        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, 'ERC20: transfer amount exceeds allowance'));
         return true;
     }
 
@@ -650,16 +596,8 @@ contract ERC20 is Context, IERC20 {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        virtual
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].add(addedValue)
-        );
+    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
         return true;
     }
 
@@ -677,19 +615,8 @@ contract ERC20 is Context, IERC20 {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        virtual
-        returns (bool)
-    {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "ERC20: decreased allowance below zero"
-            )
-        );
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, 'ERC20: decreased allowance below zero'));
         return true;
     }
 
@@ -712,17 +639,15 @@ contract ERC20 is Context, IERC20 {
         address recipient,
         uint256 amount
     ) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(sender, recipient, amount);
-
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
+        // require(sender != address(0), "ERC20: transfer from the zero address");
+        // require(recipient != address(0), "ERC20: transfer to the zero address");
+        // _beforeTokenTransfer(sender, recipient, amount);
+        // _balances[sender] = _balances[sender].sub(
+        //     amount,
+        //     "ERC20: transfer amount exceeds balance"
+        // );
+        // _balances[recipient] = _balances[recipient].add(amount);
+        // emit Transfer(sender, recipient, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -735,7 +660,7 @@ contract ERC20 is Context, IERC20 {
      * - `to` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
+        require(account != address(0), 'ERC20: mint to the zero address');
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -756,14 +681,11 @@ contract ERC20 is Context, IERC20 {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+        require(account != address(0), 'ERC20: burn from the zero address');
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(
-            amount,
-            "ERC20: burn amount exceeds balance"
-        );
+        _balances[account] = _balances[account].sub(amount, 'ERC20: burn amount exceeds balance');
         _totalSupply = _totalSupply.sub(amount);
         emit Transfer(account, address(0), amount);
     }
@@ -786,8 +708,8 @@ contract ERC20 is Context, IERC20 {
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        require(owner != address(0), 'ERC20: approve from the zero address');
+        require(spender != address(0), 'ERC20: approve to the zero address');
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
@@ -841,10 +763,7 @@ contract ERC20 is Context, IERC20 {
 contract Ownable is Context {
     address private _owner;
 
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
@@ -866,7 +785,7 @@ contract Ownable is Context {
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(_owner == _msgSender(), "Ownable: caller is not the owner");
+        require(_owner == _msgSender(), 'Ownable: caller is not the owner');
         _;
     }
 
@@ -887,10 +806,7 @@ contract Ownable is Context {
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(
-            newOwner != address(0),
-            "Ownable: new owner is the zero address"
-        );
+        require(newOwner != address(0), 'Ownable: new owner is the zero address');
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
     }
@@ -902,27 +818,30 @@ interface IUniswapV2Pair {
 }
 
 interface IUniswapV2Factory {
-    function createPair(address tokenA, address tokenB)
-        external
-        returns (address pair);
+    function createPair(address tokenA, address tokenB) external returns (address pair);
 }
 
 contract HelpToken is ERC20, Ownable {
     using SafeMath for uint256;
 
-    // GRILL
+    // Drain
 
-    uint256 public lastGrillTime;
+    uint256 public lastDrainTime;
 
-    uint256 public totalGrilled;
+    uint256 public totalDrained;
 
-    uint256 public constant GRILL_RATE = 4; // grill rate per day (4%)
+    uint256 public constant DRAIN_RATE = 4; // drain rate per day (4%)
 
-    uint256 public constant GRILL_REWARD = 4;
+    uint256 public constant DRAIN_REWARD = 419;
 
     // REWARDS
 
-    uint256 public constant POOL_REWARD = 46;
+    uint256 public constant POOL_REWARD = 4581;
+
+    // Tx
+
+    uint256 public constant TX_BURN = 2;
+    uint256 public constant TX_REWARD = 2;
 
     uint256 public lastRewardTime;
 
@@ -951,82 +870,89 @@ contract HelpToken is ERC20, Ownable {
     // ERC20 internal WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     ERC20 internal WETH = ERC20(0x0a180A76e4466bF68A7F86fB029BEd3cCcFaAac5); // For Ropsten Testnet
 
-    IUniswapV2Factory public uniswapFactory = IUniswapV2Factory(
-        0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f
-    );
+    IUniswapV2Factory public uniswapFactory = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
 
     address public uniswapPool;
 
     // MODIFIERS
 
     modifier onlyPauser() {
-        require(pauser == _msgSender(), "HelpToken: caller is not the pauser.");
+        require(pauser == _msgSender(), 'HelpToken: caller is not the pauser.');
         _;
     }
 
     modifier whenNotPaused() {
-        require(!paused, "HelpToken: paused");
+        require(!paused, 'HelpToken: paused');
         _;
     }
 
     modifier when1DayBetweenLastSnapshot() {
-        require(
-            (now - lastRewardTime) >= 1 days,
-            "HelpToken: not enough days since last snapshot taken."
-        );
+        require((now - lastRewardTime) >= 1 days, 'HelpToken: not enough days since last snapshot taken.');
         _;
     }
 
     // EVENTS
 
-    event PoolGrilled(
+    event PoolDrained(
         address tender,
-        uint256 grillAmount,
+        uint256 drainAmount,
         uint256 newTotalSupply,
         uint256 newUniswapPoolSupply,
         uint256 userReward,
         uint256 newPoolReward
     );
 
-    event PayoutSnapshotTaken(
-        uint256 totalTopHolders,
-        uint256 totalPayout,
-        uint256 snapshot
-    );
+    event PayoutSnapshotTaken(uint256 totalTopHolders, uint256 totalPayout, uint256 snapshot);
 
-    event PayoutClaimed(
-        address indexed topHolderAddress,
-        uint256 claimedReward
-    );
+    event PayoutClaimed(address indexed topHolderAddress, uint256 claimedReward);
 
-    constructor() public Ownable() ERC20("HELP Token", "HELP") {
+    constructor() public Ownable() ERC20('HELP Token', 'HELP') {
         _mint(msg.sender, 10000 * 10**18);
         setPauser(msg.sender);
         paused = true;
     }
 
     function setUniswapPool() external onlyOwner {
-        require(uniswapPool == address(0), "HelpToken: pool already created");
+        require(uniswapPool == address(0), 'HelpToken: pool already created');
         uniswapPool = uniswapFactory.createPair(address(WETH), address(this));
     }
 
     // PAUSE
 
     function setPauser(address newPauser) public onlyOwner {
-        require(
-            newPauser != address(0),
-            "HelpToken: pauser is the zero address."
-        );
+        require(newPauser != address(0), 'HelpToken: pauser is the zero address.');
         pauser = newPauser;
     }
 
     function unpause() external onlyPauser {
         paused = false;
 
-        // Start grilling
-        lastGrillTime = now;
+        // Start draining
+        lastDrainTime = now;
         lastRewardTime = now;
         rewardPool = 0;
+    }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal virtual override {
+        require(sender != address(0), 'ERC20: transfer from the zero address');
+        require(recipient != address(0), 'ERC20: transfer to the zero address');
+
+        _beforeTokenTransfer(sender, recipient, amount);
+
+        uint256 tokensToBurn = amount.mul(TX_BURN).div(100);
+        uint256 tokensToReward = amount.mul(TX_REWARD).div(100);
+        uint256 tokensToTransfer = amount.sub(tokensToBurn).sub(tokensToReward);
+
+        _totalSupply = _totalSupply.sub(tokensToBurn);
+        rewardPool = rewardPool.add(tokensToReward);
+
+        _balances[sender] = _balances[sender].sub(amount, 'ERC20: transfer amount exceeds balance');
+        _balances[recipient] = _balances[recipient].add(tokensToTransfer);
+        emit Transfer(sender, recipient, amount);
     }
 
     // TOKEN TRANSFER HOOK
@@ -1037,13 +963,10 @@ contract HelpToken is ERC20, Ownable {
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        require(
-            !paused || msg.sender == pauser,
-            "HelpToken: token transfer while paused and not pauser role."
-        );
+        require(!paused || msg.sender == pauser, 'HelpToken: token transfer while paused and not pauser role.');
     }
 
-    // GRILLERS
+    // DRAINERS
 
     function getInfoFor(address addr)
         public
@@ -1065,77 +988,56 @@ contract HelpToken is ERC20, Ownable {
             claimedRewards[addr],
             balanceOf(uniswapPool),
             _totalSupply,
-            totalGrilled,
-            getGrillAmount(),
-            lastGrillTime,
+            totalDrained,
+            getDrainAmount(),
+            lastDrainTime,
             lastRewardTime,
             rewardPool
         );
     }
 
-    function grillPool() external {
-        uint256 grillAmount = getGrillAmount();
-        require(
-            grillAmount >= 1 * 1e18,
-            "grillPool: min grill amount not reached."
-        );
+    function drainPool() external {
+        uint256 drainAmount = getDrainAmount();
+        require(drainAmount >= 1 * 1e18, 'drainPool: min drain amount not reached.');
 
-        // Reset last grill time
-        lastGrillTime = now;
+        // Reset last drain time
+        lastDrainTime = now;
 
-        uint256 userReward = grillAmount.mul(GRILL_REWARD).div(100);
-        uint256 poolReward = grillAmount.mul(POOL_REWARD).div(100);
-        uint256 finalGrill = grillAmount.sub(userReward).sub(poolReward);
+        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(10000);
+        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
+        uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
-        _totalSupply = _totalSupply.sub(finalGrill);
-        _balances[uniswapPool] = _balances[uniswapPool].sub(grillAmount);
+        _totalSupply = _totalSupply.sub(finalDrain);
+        _balances[uniswapPool] = _balances[uniswapPool].sub(drainAmount);
 
-        totalGrilled = totalGrilled.add(finalGrill);
+        totalDrained = totalDrained.add(finalDrain);
         rewardPool = rewardPool.add(poolReward);
 
         _balances[msg.sender] = _balances[msg.sender].add(userReward);
 
         IUniswapV2Pair(uniswapPool).sync();
 
-        emit PoolGrilled(
-            msg.sender,
-            grillAmount,
-            _totalSupply,
-            balanceOf(uniswapPool),
-            userReward,
-            poolReward
-        );
+        emit PoolDrained(msg.sender, drainAmount, _totalSupply, balanceOf(uniswapPool), userReward, poolReward);
     }
 
-    function getGrillAmount() public view returns (uint256) {
+    function getDrainAmount() public view returns (uint256) {
         if (paused) return 0;
-        uint256 timeBetweenLastGrill = now - lastGrillTime;
+        uint256 timeBetweenLastDrain = now - lastDrainTime;
         uint256 tokensInUniswapPool = balanceOf(uniswapPool);
         uint256 dayInSeconds = 1 days;
-        return
-            (tokensInUniswapPool.mul(GRILL_RATE).mul(timeBetweenLastGrill))
-                .div(dayInSeconds)
-                .div(100);
+        return (tokensInUniswapPool.mul(DRAIN_RATE).mul(timeBetweenLastDrain)).div(dayInSeconds).div(100);
     }
 
     // Rewards
 
-    function updateTopHolders(address[] calldata holders)
-        external
-        onlyOwner
-        when1DayBetweenLastSnapshot
-    {
-        totalTopHolders = holders.length < MAX_TOP_HOLDERS
-            ? holders.length
-            : MAX_TOP_HOLDERS;
+    function updateTopHolders(address[] calldata holders) external onlyOwner when1DayBetweenLastSnapshot {
+        totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
 
         // Calculate payout and take snapshot
         uint256 toPayout = rewardPool.div(totalTopHolders);
         uint256 totalPayoutSent = rewardPool;
         for (uint256 i = 0; i < totalTopHolders; i++) {
-            unclaimedRewards[holders[i]] = unclaimedRewards[holders[i]].add(
-                toPayout
-            );
+            unclaimedRewards[holders[i]] = unclaimedRewards[holders[i]].add(toPayout);
         }
 
         // Reset rewards pool
@@ -1146,16 +1048,11 @@ contract HelpToken is ERC20, Ownable {
     }
 
     function claimRewards() external {
-        require(
-            unclaimedRewards[msg.sender] > 0,
-            "HelpToken: nothing left to claim."
-        );
+        require(unclaimedRewards[msg.sender] > 0, 'HelpToken: nothing left to claim.');
 
         uint256 unclaimedReward = unclaimedRewards[msg.sender];
         unclaimedRewards[msg.sender] = 0;
-        claimedRewards[msg.sender] = claimedRewards[msg.sender].add(
-            unclaimedReward
-        );
+        claimedRewards[msg.sender] = claimedRewards[msg.sender].add(unclaimedReward);
         _balances[msg.sender] = _balances[msg.sender].add(unclaimedReward);
 
         emit PayoutClaimed(msg.sender, unclaimedReward);
