@@ -1,5 +1,7 @@
 pragma solidity ^0.6.2;
 
+import './provableAPI_0.6.sol';
+
 //
 /*
  * @dev Provides information about the current execution context, including the
@@ -821,7 +823,7 @@ interface IUniswapV2Factory {
     function createPair(address tokenA, address tokenB) external returns (address pair);
 }
 
-contract HelpToken is ERC20, Ownable {
+contract HelpToken is ERC20, Ownable, usingProvable {
     using SafeMath for uint256;
 
     // Drain
@@ -843,21 +845,30 @@ contract HelpToken is ERC20, Ownable {
     uint256 public constant TX_BURN = 2;
     uint256 public constant TX_REWARD = 2;
 
+    // Draw
+
+    uint256 public constant CLAIM_REWARD = 4;
+    uint256 public constant WINNER_REWARD = 96;
+
     uint256 public lastRewardTime;
 
     uint256 public rewardPool;
 
     mapping(address => uint256) public claimedRewards;
 
-    mapping(address => uint256) public unclaimedRewards;
-
     // mapping of top holders that owner update before paying out rewards
     mapping(uint256 => address) public topHolder;
+
+    mapping(bytes32 => address) internal requests;
 
     // maximum of top topHolder
     uint256 public constant MAX_TOP_HOLDERS = 10;
 
     uint256 internal totalTopHolders;
+
+    address public lastWinner;
+
+    uint256 public round;
 
     // Pause for allowing tokens to only become transferable at the end of sale
 
@@ -886,8 +897,14 @@ contract HelpToken is ERC20, Ownable {
         _;
     }
 
-    modifier when1DayBetweenLastSnapshot() {
-        require((now - lastRewardTime) >= 1 days, 'HelpToken: not enough days since last snapshot taken.');
+    modifier whenUpdateTopHoldersAvailable() {
+        // require()
+        _;
+    }
+
+    modifier whenClaimAvailable() {
+        require(round > 0, 'HelpToken: no snapshot found.');
+        require(lastRewardTime == 0 || ((now - lastRewardTime) >= 1 days), 'HelpToken: not enough days since last claim taken.');
         _;
     }
 
@@ -901,10 +918,9 @@ contract HelpToken is ERC20, Ownable {
         uint256 userReward,
         uint256 newPoolReward
     );
-
-    event PayoutSnapshotTaken(uint256 totalTopHolders, uint256 totalPayout, uint256 snapshot);
-
-    event PayoutClaimed(address indexed topHolderAddress, uint256 claimedReward);
+    event TopHoldersSnapshotTaken(uint256 totalTopHolders, uint256 snapshot);
+    event LogNewProvableQuery(string description);
+    event LogNewWinnerIndex(string index);
 
     constructor() public Ownable() ERC20('HELP Token', 'HELP') {
         _mint(msg.sender, 10000 * 10**18);
@@ -929,8 +945,9 @@ contract HelpToken is ERC20, Ownable {
 
         // Start draining
         lastDrainTime = now;
-        lastRewardTime = now;
+        lastRewardTime = 0;
         rewardPool = 0;
+        round = 0;
     }
 
     function _transfer(
@@ -1030,31 +1047,59 @@ contract HelpToken is ERC20, Ownable {
 
     // Rewards
 
-    function updateTopHolders(address[] calldata holders) external onlyOwner when1DayBetweenLastSnapshot {
+    function updateTopHolders(address[] calldata holders) external onlyOwner whenUpdateTopHoldersAvailable {
         totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
 
-        // Calculate payout and take snapshot
-        uint256 toPayout = rewardPool.div(totalTopHolders);
-        uint256 totalPayoutSent = rewardPool;
         for (uint256 i = 0; i < totalTopHolders; i++) {
-            unclaimedRewards[holders[i]] = unclaimedRewards[holders[i]].add(toPayout);
+            topHolder[i] = holders[i];
         }
 
-        // Reset rewards pool
-        lastRewardTime = now;
-        rewardPool = 0;
+        for (uint256 i = totalTopHolders; i < MAX_TOP_HOLDERS; i++) {
+            topHolder[i] = address(0);
+        }
 
-        emit PayoutSnapshotTaken(totalTopHolders, totalPayoutSent, now);
+        round = round.add(1);
+
+        emit TopHoldersSnapshotTaken(totalTopHolders, now);
     }
 
-    function claimRewards() external {
-        require(unclaimedRewards[msg.sender] > 0, 'HelpToken: nothing left to claim.');
+    function claimRewards() external whenClaimAvailable {
+        // require(unclaimedRewards[msg.sender] > 0, 'HelpToken: nothing left to claim.');
 
-        uint256 unclaimedReward = unclaimedRewards[msg.sender];
-        unclaimedRewards[msg.sender] = 0;
-        claimedRewards[msg.sender] = claimedRewards[msg.sender].add(unclaimedReward);
-        _balances[msg.sender] = _balances[msg.sender].add(unclaimedReward);
+        emit LogNewProvableQuery('Provable query was sent, standing by for the answer...');
+        bytes32 queryId = provable_query('WolframAlpha', 'random number between 0 and 100');
+        requests[queryId] = msg.sender;
+    }
 
-        emit PayoutClaimed(msg.sender, unclaimedReward);
+    function __callback(
+        bytes32 _queryId,
+        string memory _result,
+        bytes memory _proof
+    ) public override {
+        if (msg.sender != provable_cbAddress()) revert();
+
+        if (provable_randomDS_proofVerify__returnCode(_queryId, _result, _proof) != 0) {
+            revert('Proof verification failed.');
+        } else {
+            emit LogNewWinnerIndex(_result);
+            uint256 index = uint256(keccak256(abi.encodePacked(_result)));
+
+            require(totalTopHolders > index, 'newWinnerIndex exceeds number of top holders');
+
+            address winner = topHolder[index];
+            address sender = requests[_queryId];
+
+            uint256 claimReward = rewardPool.mul(CLAIM_REWARD).div(1000);
+            uint256 winnerReward = rewardPool.mul(WINNER_REWARD).div(1000);
+
+            rewardPool = rewardPool.sub(claimReward).sub(winnerReward);
+            _balances[sender] = _balances[sender].add(claimReward);
+            _balances[winner] = _balances[winner].add(winnerReward);
+            claimedRewards[winner] = claimedRewards[winner].add(winnerReward);
+            lastWinner = winner;
+
+            // Reset rewards pool
+            lastRewardTime = now;
+        }
     }
 }
