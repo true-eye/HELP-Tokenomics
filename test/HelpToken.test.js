@@ -22,15 +22,15 @@ contract('HelpToken Test', async (accounts) => {
     expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber.equal(totalSupply)
   })
 
-  // it('is possible to send tokens between accounts when paused', async () => {
-  //   const sendTokens = 100
-  //   let instance = await Token.deployed()
-  //   let totalSupply = await instance.totalSupply()
-  //   expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber.equal(totalSupply)
-  //   expect(instance.transfer(recipient, sendTokens)).to.eventually.be.fulfilled
-  //   expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber.equal(totalSupply.sub(new BN(sendTokens)))
-  //   expect(instance.balanceOf(recipient)).to.eventually.be.a.bignumber.equal(new BN(sendTokens))
-  // })
+  it('is possible to send tokens between accounts when paused', async () => {
+    const sendTokens = 100
+    let instance = await Token.deployed()
+    let totalSupply = await instance.totalSupply()
+    expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber.equal(totalSupply)
+    expect(instance.transfer(recipient, sendTokens)).to.eventually.be.fulfilled
+    expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber.equal(totalSupply.sub(new BN(sendTokens)))
+    expect(instance.balanceOf(recipient)).to.eventually.be.a.bignumber.equal(new BN(sendTokens))
+  })
 
   // it('is possible to send tokens between accounts when unpaused', async () => {
   //   const sendTokens = 100
@@ -44,12 +44,12 @@ contract('HelpToken Test', async (accounts) => {
   //   expect(instance.rewardPool()).to.eventually.be.a.bignumber.equal(new BN((sendTokens * 2) / 100))
   // })
 
-  // it('is not possible to send more tokens than available in total', async () => {
-  //   let instance = await Token.deployed()
-  //   let balanceOfDeployer = await instance.balanceOf(deployerAccount)
+  it('is not possible to send more tokens than available in total', async () => {
+    let instance = await Token.deployed()
+    let balanceOfDeployer = await instance.balanceOf(deployerAccount)
 
-  //   expect(instance.transfer(recipient, new BN(balanceOfDeployer + 1))).to.eventually.be.rejected
+    expect(instance.transfer(recipient, new BN(balanceOfDeployer + 1))).to.eventually.be.rejected
 
-  //   expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber(balanceOfDeployer)
-  // })
+    expect(instance.balanceOf(deployerAccount)).to.eventually.be.a.bignumber(balanceOfDeployer)
+  })
 })

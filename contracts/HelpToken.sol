@@ -1,9 +1,14 @@
 pragma solidity ^0.6.2;
 
-import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
-import 'openzeppelin-solidity/contracts/access/Ownable.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/IERC20.sol';
-import 'openzeppelin-solidity/contracts/utils/Address.sol';
+// import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
+// import 'openzeppelin-solidity/contracts/access/Ownable.sol';
+// import 'openzeppelin-solidity/contracts/token/ERC20/IERC20.sol';
+// import 'openzeppelin-solidity/contracts/utils/Address.sol';
+
+import './SafeMath.sol';
+import './Ownable.sol';
+import './IERC20.sol';
+import './Address.sol';
 
 //
 /**

@@ -1,8 +1,9 @@
 pragma solidity ^0.6.2;
 
-import 'openzeppelin-solidity/contracts/access/Ownable.sol';
-import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/IERC20.sol';
+import './Ownable.sol';
+import './SafeMath.sol';
+import './IERC20.sol';
+import './HelpToken.sol';
 import './provableAPI_0.6.sol';
 
 contract HelpRewardPool is Ownable, usingProvable {
@@ -15,7 +16,7 @@ contract HelpRewardPool is Ownable, usingProvable {
 
     uint256 public lastRewardTime;
 
-    IERC20 public rewardToken;
+    HelpToken public rewardToken;
 
     mapping(address => uint256) public claimedRewards;
 
@@ -37,14 +38,19 @@ contract HelpRewardPool is Ownable, usingProvable {
 
     // MODIFIERS
 
+    modifier whenNotPaused() {
+        require(rewardToken.paused() == false, 'HelpToken: paused');
+        _;
+    }
+
     modifier whenUpdateTopHoldersAvailable() {
         // require()
         _;
     }
 
     modifier whenClaimAvailable() {
-        require(round > 0, 'HelpToken: no snapshot found.');
-        require(claimAvailable == true, 'HelpToken: claim not available.');
+        require(round > 0, 'HelpRewardPool: no snapshot found.');
+        require(claimAvailable == true, 'HelpRewardPool: claim not available.');
         _;
     }
 
@@ -54,13 +60,13 @@ contract HelpRewardPool is Ownable, usingProvable {
     event LogNewProvableQuery(string description);
     event LogNewWinnerIndex(string index);
 
-    constructor(IERC20 _rewardToken) public {
+    constructor(HelpToken _rewardToken) public {
         rewardToken = _rewardToken;
     }
 
     // Rewards
 
-    function updateTopHolders(address[] calldata holders) external onlyOwner whenUpdateTopHoldersAvailable {
+    function updateTopHolders(address[] calldata holders) external onlyOwner whenUpdateTopHoldersAvailable whenNotPaused {
         totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
 
         for (uint256 i = 0; i < totalTopHolders; i++) {
@@ -77,7 +83,7 @@ contract HelpRewardPool is Ownable, usingProvable {
         emit TopHoldersSnapshotTaken(totalTopHolders, now);
     }
 
-    function claimRewards() external whenClaimAvailable {
+    function claimRewards() external whenClaimAvailable whenNotPaused {
         claimAvailable = false;
 
         emit LogNewProvableQuery('Provable query was sent, standing by for the answer...');
