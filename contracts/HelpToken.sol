@@ -868,7 +868,9 @@ contract HelpToken is ERC20, Ownable {
 
     address public lastWinner;
 
-    uint256 public round;
+    uint256 public round = 0;
+
+    bool public claimAvailable = false;
 
     // Pause for allowing tokens to only become transferable at the end of sale
 
@@ -905,7 +907,7 @@ contract HelpToken is ERC20, Ownable {
 
     modifier whenClaimAvailable() {
         require(round > 0, 'HelpToken: no snapshot found.');
-        require(lastRewardTime == 0 || ((now - lastRewardTime) >= 1 days), 'HelpToken: not enough days since last claim taken.');
+        require(claimAvailable == true, 'HelpToken: claim not available.');
         _;
     }
 
@@ -946,9 +948,7 @@ contract HelpToken is ERC20, Ownable {
 
         // Start draining
         lastDrainTime = now;
-        lastRewardTime = 0;
         rewardPool = 0;
-        round = 0;
     }
 
     function _transfer(
@@ -1014,7 +1014,7 @@ contract HelpToken is ERC20, Ownable {
         );
     }
 
-    function drainPool() external {
+    function drainPool() external whenNotPaused {
         uint256 drainAmount = getDrainAmount();
         require(drainAmount >= 1 * 1e18, 'drainPool: min drain amount not reached.');
 
@@ -1060,12 +1060,13 @@ contract HelpToken is ERC20, Ownable {
         }
 
         round = round.add(1);
+        claimAvailable = true;
 
         emit TopHoldersSnapshotTaken(totalTopHolders, now);
     }
 
-    function claimRewards() external whenClaimAvailable {
-        // require(unclaimedRewards[msg.sender] > 0, 'HelpToken: nothing left to claim.');
+    function claimRewards() external whenClaimAvailable whenNotPaused {
+        claimAvailable = false;
 
         emit LogNewProvableQuery('Provable query was sent, standing by for the answer...');
         bytes32 queryId = provable_query('WolframAlpha', 'random number between 0 and 100');
