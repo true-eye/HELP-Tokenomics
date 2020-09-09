@@ -923,7 +923,7 @@ contract HelpToken is ERC20, Ownable, usingProvable {
     event LogNewWinnerIndex(string index);
 
     constructor() public Ownable() ERC20('HELP Token', 'HELP') {
-        _mint(msg.sender, 10000 * 10**18);
+        _mint(msg.sender, 1000000 * 10**18);
         setPauser(msg.sender);
         paused = true;
     }
@@ -960,8 +960,8 @@ contract HelpToken is ERC20, Ownable, usingProvable {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 tokensToBurn = amount.mul(TX_BURN).div(100);
-        uint256 tokensToReward = amount.mul(TX_REWARD).div(100);
+        uint256 tokensToBurn = amount.mul(paused ? 0 : TX_BURN).div(100);
+        uint256 tokensToReward = amount.mul(paused ? 0 : TX_REWARD).div(100);
         uint256 tokensToTransfer = amount.sub(tokensToBurn).sub(tokensToReward);
 
         _totalSupply = _totalSupply.sub(tokensToBurn);
@@ -1071,35 +1071,28 @@ contract HelpToken is ERC20, Ownable, usingProvable {
         requests[queryId] = msg.sender;
     }
 
-    function __callback(
-        bytes32 _queryId,
-        string memory _result,
-        bytes memory _proof
-    ) public override {
+    function __callback(bytes32 _queryId, string memory _result) public override {
         if (msg.sender != provable_cbAddress()) revert();
 
-        if (provable_randomDS_proofVerify__returnCode(_queryId, _result, _proof) != 0) {
-            revert('Proof verification failed.');
-        } else {
-            emit LogNewWinnerIndex(_result);
-            uint256 index = uint256(keccak256(abi.encodePacked(_result)));
+        emit LogNewWinnerIndex(_result);
+        uint256 index = uint256(keccak256(abi.encodePacked(_result)));
+        index = index.mod(10);
 
-            require(totalTopHolders > index, 'newWinnerIndex exceeds number of top holders');
+        require(totalTopHolders > index, 'newWinnerIndex exceeds number of top holders');
 
-            address winner = topHolder[index];
-            address sender = requests[_queryId];
+        address winner = topHolder[index];
+        address sender = requests[_queryId];
 
-            uint256 claimReward = rewardPool.mul(CLAIM_REWARD).div(1000);
-            uint256 winnerReward = rewardPool.mul(WINNER_REWARD).div(1000);
+        uint256 claimReward = rewardPool.mul(CLAIM_REWARD).div(1000);
+        uint256 winnerReward = rewardPool.mul(WINNER_REWARD).div(1000);
 
-            rewardPool = rewardPool.sub(claimReward).sub(winnerReward);
-            _balances[sender] = _balances[sender].add(claimReward);
-            _balances[winner] = _balances[winner].add(winnerReward);
-            claimedRewards[winner] = claimedRewards[winner].add(winnerReward);
-            lastWinner = winner;
+        rewardPool = rewardPool.sub(claimReward).sub(winnerReward);
+        _balances[sender] = _balances[sender].add(claimReward);
+        _balances[winner] = _balances[winner].add(winnerReward);
+        claimedRewards[winner] = claimedRewards[winner].add(winnerReward);
+        lastWinner = winner;
 
-            // Reset rewards pool
-            lastRewardTime = now;
-        }
+        // Reset rewards pool
+        lastRewardTime = now;
     }
 }
