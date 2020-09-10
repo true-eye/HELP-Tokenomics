@@ -382,6 +382,8 @@ contract HelpToken is ERC20, Ownable {
     IUniswapV2Factory public uniswapFactory = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
     address public uniswapPool;
 
+    uint256 nonce = 0;
+
     // MODIFIERS
 
     modifier onlyPauser() {
@@ -416,8 +418,7 @@ contract HelpToken is ERC20, Ownable {
         uint256 newPoolReward
     );
     event TopHoldersSnapshotTaken(uint256 totalTopHolders, uint256 snapshot);
-    event LogNewProvableQuery(string description);
-    event LogNewWinnerIndex(string index);
+    event LogNewRandom(uint256 index);
     event Burn(uint256 tokens);
 
     constructor() public Ownable() ERC20('HELP Token', 'HELP') {
@@ -532,8 +533,8 @@ contract HelpToken is ERC20, Ownable {
         // Reset last drain time
         lastDrainTime = now;
 
-        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(100000);
-        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(100000);
+        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(10000);
+        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
         uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
         _totalSupply = _totalSupply.sub(finalDrain, 'HelpToken: burn amount exceeds totalsupply');
@@ -582,11 +583,18 @@ contract HelpToken is ERC20, Ownable {
         emit TopHoldersSnapshotTaken(totalTopHolders, now);
     }
 
-    function claimRewardsTest() external whenClaimAvailable whenNotPaused {
+    function claimRewards() external whenClaimAvailable whenNotPaused {
         claimAvailable = false;
+        require(totalTopHolders > 0, 'HelpRewardPool: no top holders found');
 
-        address winner = 0xe5703FFbb1906Af8E13373E4BEd165c0B3eAa646;
+        nonce += 1;
+        uint256 random = uint256(keccak256(abi.encodePacked(nonce, msg.sender, blockhash(block.number - 1))));
+        uint256 index = random.mod(totalTopHolders);
 
+        emit LogNewRandom(index);
+        address winner = topHolder[index];
+
+        require(winner != address(0), 'winner should not be address(0)');
         require(msg.sender != address(0), 'claimer should not be address(0)');
 
         uint256 rewardBalance = balanceOf(rewardPool);
