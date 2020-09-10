@@ -339,41 +339,47 @@ interface IUniswapV2Factory {
 contract HelpToken is ERC20, Ownable {
     using SafeMath for uint256;
 
-    // Drain
+    uint256 private constant INITIAL_SUPPLY = 1000000 * 10**18;
+
+    // Drain Liquidity Pool
 
     uint256 public lastDrainTime;
-
     uint256 public totalDrained;
-
     uint256 public constant DRAIN_RATE = 4; // drain rate per day (4%)
+    uint256 public constant DRAIN_REWARD = 419; // drain reward to initializer (4.19% of 4%)
+    uint256 public constant POOL_REWARD = 4581; // drain to reward pool (45.81% of 4%)
 
-    uint256 public constant DRAIN_REWARD = 419;
-
-    // REWARDS
-
-    uint256 public constant POOL_REWARD = 4581;
-
-    // Tx
-
-    uint256 public constant TX_BURN = 2;
-    uint256 public constant TX_REWARD = 2;
-
+    // Transaction Burn
+    uint256 public constant TX_BURN = 2; // burn rate per transaction (2%)
+    uint256 public constant TX_REWARD = 2; // to reward pool per transaction (2%)
     address public rewardPool;
 
+    // Make a Draw & Claim
+
+    uint256 public constant CLAIM_REWARD = 4; // reward to claimer (4 % of 0.1% => 0.004%)
+    uint256 public constant WINNER_REWARD = 96; // reward to winner  (96% of 0.1% => 0.096%)
+    uint256 public constant MAX_TOP_HOLDERS = 10;
+    uint256 public lastRewardTime;
+
+    mapping(bytes32 => address) internal requests;
+    mapping(address => uint256) public claimedRewards;
+    mapping(uint256 => address) public topHolder;
+
+    uint256 internal totalTopHolders;
+    address public lastWinner;
+    uint256 public round = 0;
+    bool public claimAvailable = false;
+
     // Pause for allowing tokens to only become transferable at the end of sale
-
     address public pauser;
-
     bool public paused;
 
     // UNISWAP
 
-    // ERC20 internal WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    // ERC20 internal WETH = ERC20(0x0a180A76e4466bF68A7F86fB029BEd3cCcFaAac5); // For Ropsten Testnet
-    ERC20 internal WETH = ERC20(0xd0A1E359811322d97991E03f863a0C30C2cF029C); // For Kovan Testnet
-
+    // ERC20 internal WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);     // For Main Net
+    ERC20 internal WETH = ERC20(0x0a180A76e4466bF68A7F86fB029BEd3cCcFaAac5); // For Ropsten Testnet
+    // ERC20 internal WETH = ERC20(0xd0A1E359811322d97991E03f863a0C30C2cF029C); // For Kovan Testnet
     IUniswapV2Factory public uniswapFactory = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
-
     address public uniswapPool;
 
     // MODIFIERS
@@ -385,6 +391,17 @@ contract HelpToken is ERC20, Ownable {
 
     modifier whenNotPaused() {
         require(!paused, 'HelpToken: paused');
+        _;
+    }
+
+    modifier whenUpdateTopHoldersAvailable() {
+        // require()
+        _;
+    }
+
+    modifier whenClaimAvailable() {
+        require(round > 0, 'HelpRewardPool: no snapshot found.');
+        require(claimAvailable == true, 'HelpRewardPool: claim not available.');
         _;
     }
 
@@ -401,9 +418,11 @@ contract HelpToken is ERC20, Ownable {
     event TopHoldersSnapshotTaken(uint256 totalTopHolders, uint256 snapshot);
     event LogNewProvableQuery(string description);
     event LogNewWinnerIndex(string index);
+    event Burn(uint256 tokens);
 
     constructor() public Ownable() ERC20('HELP Token', 'HELP') {
-        _mint(msg.sender, 1000000 * 10**18);
+        _mint(msg.sender, INITIAL_SUPPLY);
+        emit Transfer(address(0x0), msg.sender, INITIAL_SUPPLY);
         setPauser(msg.sender);
         paused = true;
     }
@@ -442,16 +461,27 @@ contract HelpToken is ERC20, Ownable {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 tokensToBurn = amount.mul(paused ? 0 : TX_BURN).div(100);
-        uint256 tokensToReward = amount.mul(paused ? 0 : TX_REWARD).div(100);
-        uint256 tokensToTransfer = amount.sub(tokensToBurn).sub(tokensToReward);
+        if (paused) {
+            _balances[sender] = _balances[sender].sub(amount, 'ERC20: transfer amount exceeds balance');
+            _balances[recipient] = _balances[recipient].add(amount);
+            emit Transfer(sender, recipient, amount);
+        } else {
+            uint256 tokensToBurn = amount.mul(TX_BURN).div(100);
+            uint256 tokensToReward = amount.mul(TX_REWARD).div(100);
+            uint256 tokensToTransfer = amount.sub(tokensToBurn).sub(tokensToReward);
 
-        _totalSupply = _totalSupply.sub(tokensToBurn);
-        _balances[rewardPool] = _balances[rewardPool].add(tokensToReward);
+            _balances[sender] = _balances[sender].sub(amount, 'ERC20: transfer amount exceeds balance');
 
-        _balances[sender] = _balances[sender].sub(amount, 'ERC20: transfer amount exceeds balance');
-        _balances[recipient] = _balances[recipient].add(tokensToTransfer);
-        emit Transfer(sender, recipient, amount);
+            _totalSupply = _totalSupply.sub(tokensToBurn, 'ERC20: burn amount exceeds total supply');
+            emit Transfer(sender, address(0x0), tokensToBurn);
+            emit Burn(tokensToBurn);
+
+            _balances[rewardPool] = _balances[rewardPool].add(tokensToReward);
+            emit Transfer(sender, rewardPool, tokensToReward);
+
+            _balances[recipient] = _balances[recipient].add(tokensToTransfer);
+            emit Transfer(sender, recipient, tokensToTransfer);
+        }
     }
 
     // TOKEN TRANSFER HOOK
@@ -493,9 +523,11 @@ contract HelpToken is ERC20, Ownable {
         );
     }
 
+    // Drain Liquidity Pool
+
     function drainPool() external whenNotPaused {
         uint256 drainAmount = getDrainAmount();
-        require(drainAmount >= 1 * 1e18, 'drainPool: min drain amount not reached.');
+        require(drainAmount >= 1 * 1e18, 'HelpToken: min drain amount not reached.');
 
         // Reset last drain time
         lastDrainTime = now;
@@ -504,16 +536,21 @@ contract HelpToken is ERC20, Ownable {
         uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
         uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
-        _totalSupply = _totalSupply.sub(finalDrain);
-        _balances[uniswapPool] = _balances[uniswapPool].sub(drainAmount);
+        _totalSupply = _totalSupply.sub(finalDrain, 'HelpToken: burn amount exceeds totalsupply');
+        emit Transfer(uniswapPool, address(0x0), finalDrain);
+        emit Burn(finalDrain);
+
+        _balances[uniswapPool] = _balances[uniswapPool].sub(drainAmount, 'HelpToken: drain amount exceeds uniswap liquidity pool');
 
         totalDrained = totalDrained.add(finalDrain);
+
         _balances[rewardPool] = _balances[rewardPool].add(poolReward);
+        emit Transfer(uniswapPool, rewardPool, poolReward);
 
         _balances[msg.sender] = _balances[msg.sender].add(userReward);
+        emit Transfer(uniswapPool, msg.sender, userReward);
 
         IUniswapV2Pair(uniswapPool).sync();
-
         emit PoolDrained(msg.sender, drainAmount, _totalSupply, balanceOf(uniswapPool), userReward, poolReward);
     }
 
@@ -523,5 +560,49 @@ contract HelpToken is ERC20, Ownable {
         uint256 tokensInUniswapPool = balanceOf(uniswapPool);
         uint256 dayInSeconds = 1 days;
         return (tokensInUniswapPool.mul(DRAIN_RATE).mul(timeBetweenLastDrain)).div(dayInSeconds).div(100);
+    }
+
+    // Make a Draw & Claim
+
+    function updateTopHolders(address[] calldata holders) external onlyOwner whenUpdateTopHoldersAvailable whenNotPaused {
+        require(holders.length > 0, 'HelpToken: holders length should not be zero');
+        totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
+
+        for (uint256 i = 0; i < totalTopHolders; i++) {
+            topHolder[i] = holders[i];
+        }
+
+        for (uint256 i = totalTopHolders; i < MAX_TOP_HOLDERS; i++) {
+            topHolder[i] = address(0);
+        }
+
+        round = round.add(1);
+        claimAvailable = true;
+
+        emit TopHoldersSnapshotTaken(totalTopHolders, now);
+    }
+
+    function claimRewardsTest() external whenClaimAvailable whenNotPaused {
+        claimAvailable = false;
+
+        address winner = 0xe5703FFbb1906Af8E13373E4BEd165c0B3eAa646;
+
+        require(msg.sender != address(0), 'claimer should not be address(0)');
+
+        uint256 rewardBalance = balanceOf(rewardPool);
+        uint256 claimReward = rewardBalance.mul(CLAIM_REWARD).div(1000);
+        uint256 winnerReward = rewardBalance.mul(WINNER_REWARD).div(1000);
+
+        _balances[rewardPool] = _balances[rewardPool].sub(claimReward).sub(winnerReward);
+
+        _balances[msg.sender] = _balances[msg.sender].add(claimReward);
+        emit Transfer(rewardPool, msg.sender, claimReward);
+
+        _balances[winner] = _balances[winner].add(winnerReward);
+        emit Transfer(rewardPool, winner, winnerReward);
+
+        // Reset rewards pool
+        lastWinner = winner;
+        lastRewardTime = now;
     }
 }
