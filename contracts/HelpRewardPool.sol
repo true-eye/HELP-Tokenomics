@@ -95,24 +95,27 @@ contract HelpRewardPool is Ownable, usingProvable {
         if (msg.sender != provable_cbAddress()) revert();
 
         emit LogNewWinnerIndex(_result);
-        uint256 index = uint256(keccak256(abi.encodePacked(_result)));
-        index = index.mod(10);
+        if (totalTopHolders > 0) {
+            uint256 index = uint256(keccak256(abi.encodePacked(_result)));
 
-        require(totalTopHolders > index, 'newWinnerIndex exceeds number of top holders');
+            index = index.mod(totalTopHolders);
 
-        address winner = topHolder[index];
-        address sender = requests[_queryId];
+            address winner = topHolder[index];
+            address sender = requests[_queryId];
 
-        uint256 rewardBalance = rewardToken.balanceOf(address(this));
-        uint256 claimReward = rewardBalance.mul(CLAIM_REWARD).div(1000);
-        uint256 winnerReward = rewardBalance.mul(WINNER_REWARD).div(1000);
+            require(sender != address(0), 'claimer should not be address(0)');
 
-        rewardToken.transferFrom(address(this), sender, claimReward);
-        rewardToken.transferFrom(address(this), winner, winnerReward);
-        claimedRewards[winner] = claimedRewards[winner].add(winnerReward);
-        lastWinner = winner;
+            uint256 rewardBalance = rewardToken.balanceOf(address(this));
+            uint256 claimReward = rewardBalance.mul(CLAIM_REWARD).div(1000);
+            uint256 winnerReward = rewardBalance.mul(WINNER_REWARD).div(1000);
 
-        // Reset rewards pool
-        lastRewardTime = now;
+            rewardToken.transferFrom(address(this), sender, claimReward);
+            rewardToken.transferFrom(address(this), winner, winnerReward);
+            claimedRewards[winner] = claimedRewards[winner].add(winnerReward);
+            lastWinner = winner;
+
+            // Reset rewards pool
+            lastRewardTime = now;
+        }
     }
 }
