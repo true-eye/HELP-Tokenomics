@@ -32,13 +32,13 @@ module.exports = {
       network_id: 5777, // Any network (default: none)
     },
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/396d67a10f69467981b3225444547588`),
+      provider: () => new HDWalletProvider(mnemonic, `https://kovan.infura.io/v3/b6d3cae6eb88465795135213ea568aa0`),
       network_id: 3,
       gas: 5500000,
       gasPrice: 4000000000,
     },
     kovan: {
-      provider: () => new HDWalletProvider(mnemonic, `https://kovan.infura.io/v3/396d67a10f69467981b3225444547588`),
+      provider: () => new HDWalletProvider(mnemonic, `https://kovan.infura.io/v3/b6d3cae6eb88465795135213ea568aa0`),
       network_id: 42, // kovan's id
       gas: 5500000,
       gasPrice: 4000000000,

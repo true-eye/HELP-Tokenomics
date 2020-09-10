@@ -377,8 +377,8 @@ contract HelpToken is ERC20, Ownable {
     // UNISWAP
 
     // ERC20 internal WETH = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);     // For Main Net
-    ERC20 internal WETH = ERC20(0x0a180A76e4466bF68A7F86fB029BEd3cCcFaAac5); // For Ropsten Testnet
-    // ERC20 internal WETH = ERC20(0xd0A1E359811322d97991E03f863a0C30C2cF029C); // For Kovan Testnet
+    // ERC20 internal WETH = ERC20(0x0a180A76e4466bF68A7F86fB029BEd3cCcFaAac5); // For Ropsten Testnet
+    ERC20 internal WETH = ERC20(0xd0A1E359811322d97991E03f863a0C30C2cF029C); // For Kovan Testnet
     IUniswapV2Factory public uniswapFactory = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
     address public uniswapPool;
 
@@ -532,8 +532,8 @@ contract HelpToken is ERC20, Ownable {
         // Reset last drain time
         lastDrainTime = now;
 
-        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(10000);
-        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
+        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(100000);
+        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(100000);
         uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
         _totalSupply = _totalSupply.sub(finalDrain, 'HelpToken: burn amount exceeds totalsupply');
