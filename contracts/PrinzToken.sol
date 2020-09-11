@@ -336,7 +336,7 @@ interface IUniswapV2Factory {
     function createPair(address tokenA, address tokenB) external returns (address pair);
 }
 
-contract HelpToken is ERC20, Ownable {
+contract PrinzToken is ERC20, Ownable {
     using SafeMath for uint256;
 
     uint256 private constant INITIAL_SUPPLY = 1000000 * 10**18;
@@ -385,18 +385,18 @@ contract HelpToken is ERC20, Ownable {
     // MODIFIERS
 
     modifier onlyPauser() {
-        require(pauser == _msgSender(), 'HelpToken: caller is not the pauser.');
+        require(pauser == _msgSender(), 'PrinzToken: caller is not the pauser.');
         _;
     }
 
     modifier whenNotPaused() {
-        require(!paused, 'HelpToken: paused');
+        require(!paused, 'PrinzToken: paused');
         _;
     }
 
     modifier whenClaimAvailable() {
-        require(round > 0, 'HelpRewardPool: no snapshot found.');
-        require(claimAvailable == true, 'HelpRewardPool: claim not available.');
+        require(round > 0, 'PrinzToken: no snapshot found.');
+        require(claimAvailable == true, 'PrinzToken: claim not available.');
         _;
     }
 
@@ -414,7 +414,7 @@ contract HelpToken is ERC20, Ownable {
     event LogNewRandom(uint256 index);
     event Burn(uint256 tokens);
 
-    constructor() public Ownable() ERC20('HELP Token', 'HELP') {
+    constructor() public Ownable() ERC20('PRINZ Token', 'PRINZ') {
         _mint(msg.sender, INITIAL_SUPPLY);
         emit Transfer(address(0x0), msg.sender, INITIAL_SUPPLY);
         setPauser(msg.sender);
@@ -422,19 +422,19 @@ contract HelpToken is ERC20, Ownable {
     }
 
     function setRewardPool(address _rewardPool) external onlyOwner {
-        require(rewardPool == address(0), 'HelpToken: reward pool already created');
+        require(rewardPool == address(0), 'PrinzToken: reward pool already created');
         rewardPool = _rewardPool;
     }
 
     function setUniswapPool() external onlyOwner {
-        require(uniswapPool == address(0), 'HelpToken: pool already created');
+        require(uniswapPool == address(0), 'PrinzToken: pool already created');
         uniswapPool = uniswapFactory.createPair(address(WETH), address(this));
     }
 
     // PAUSE
 
     function setPauser(address newPauser) public onlyOwner {
-        require(newPauser != address(0), 'HelpToken: pauser is the zero address.');
+        require(newPauser != address(0), 'PrinzToken: pauser is the zero address.');
         pauser = newPauser;
     }
 
@@ -486,7 +486,7 @@ contract HelpToken is ERC20, Ownable {
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        require(!paused || msg.sender == pauser, 'HelpToken: token transfer while paused and not pauser role.');
+        require(!paused || msg.sender == pauser, 'PrinzToken: token transfer while paused and not pauser role.');
     }
 
     // DRAINERS
@@ -520,7 +520,7 @@ contract HelpToken is ERC20, Ownable {
 
     function drainPool() external whenNotPaused {
         uint256 drainAmount = getDrainAmount();
-        require(drainAmount >= 1 * 1e18, 'HelpToken: min drain amount not reached.');
+        require(drainAmount >= 1 * 1e18, 'PrinzToken: min drain amount not reached.');
 
         // Reset last drain time
         lastDrainTime = now;
@@ -529,11 +529,11 @@ contract HelpToken is ERC20, Ownable {
         uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
         uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
-        _totalSupply = _totalSupply.sub(finalDrain, 'HelpToken: burn amount exceeds totalsupply');
+        _totalSupply = _totalSupply.sub(finalDrain, 'PrinzToken: burn amount exceeds totalsupply');
         emit Transfer(uniswapPool, address(0x0), finalDrain);
         emit Burn(finalDrain);
 
-        _balances[uniswapPool] = _balances[uniswapPool].sub(drainAmount, 'HelpToken: drain amount exceeds uniswap liquidity pool');
+        _balances[uniswapPool] = _balances[uniswapPool].sub(drainAmount, 'PrinzToken: drain amount exceeds uniswap liquidity pool');
 
         totalDrained = totalDrained.add(finalDrain);
 
@@ -558,7 +558,7 @@ contract HelpToken is ERC20, Ownable {
     // Make a Draw & Claim
 
     function updateTopHolders(address[] calldata holders) external onlyOwner whenNotPaused {
-        require(holders.length > 0, 'HelpToken: holders length should not be zero');
+        require(holders.length > 0, 'PrinzToken: holders length should not be zero');
         totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
 
         for (uint256 i = 0; i < totalTopHolders; i++) {
@@ -577,7 +577,7 @@ contract HelpToken is ERC20, Ownable {
 
     function claimRewards() external whenClaimAvailable whenNotPaused {
         claimAvailable = false;
-        require(totalTopHolders > 0, 'HelpRewardPool: no top holders found');
+        require(totalTopHolders > 0, 'PrinzToken: no top holders found');
 
         nonce += 1;
         uint256 random = uint256(keccak256(abi.encodePacked(nonce, msg.sender, blockhash(block.number - 1))));
