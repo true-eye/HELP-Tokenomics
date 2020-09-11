@@ -361,8 +361,6 @@ contract HelpToken is ERC20, Ownable {
     uint256 public constant MAX_TOP_HOLDERS = 10;
     uint256 public lastRewardTime;
 
-    mapping(bytes32 => address) internal requests;
-    mapping(address => uint256) public claimedRewards;
     mapping(uint256 => address) public topHolder;
 
     uint256 internal totalTopHolders;
@@ -393,11 +391,6 @@ contract HelpToken is ERC20, Ownable {
 
     modifier whenNotPaused() {
         require(!paused, 'HelpToken: paused');
-        _;
-    }
-
-    modifier whenUpdateTopHoldersAvailable() {
-        // require()
         _;
     }
 
@@ -513,7 +506,6 @@ contract HelpToken is ERC20, Ownable {
     {
         return (
             balanceOf(addr),
-            // claimedRewards[addr],
             balanceOf(uniswapPool),
             _totalSupply,
             totalDrained,
@@ -565,7 +557,7 @@ contract HelpToken is ERC20, Ownable {
 
     // Make a Draw & Claim
 
-    function updateTopHolders(address[] calldata holders) external onlyOwner whenUpdateTopHoldersAvailable whenNotPaused {
+    function updateTopHolders(address[] calldata holders) external onlyOwner whenNotPaused {
         require(holders.length > 0, 'HelpToken: holders length should not be zero');
         totalTopHolders = holders.length < MAX_TOP_HOLDERS ? holders.length : MAX_TOP_HOLDERS;
 
