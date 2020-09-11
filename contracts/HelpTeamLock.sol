@@ -9,7 +9,7 @@ contract HelpTeamLock is Ownable {
 
     // Constants
     uint256 public constant LOCK_MONTHS = 6; // Month
-    uint256 public constant UNLOCK_INTERVAL = 300 seconds;
+    uint256 public constant UNLOCK_INTERVAL = 30 days;
 
     // Variables
 
