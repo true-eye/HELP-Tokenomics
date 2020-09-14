@@ -2,9 +2,9 @@ pragma solidity ^0.6.2;
 
 import './SafeMath.sol';
 import './Ownable.sol';
-import './HelpToken.sol';
+import './PrinzToken.sol';
 
-contract HelpTeamLock is Ownable {
+contract PrinzTeamLock is Ownable {
     using SafeMath for uint256;
 
     // Constants
@@ -18,15 +18,15 @@ contract HelpTeamLock is Ownable {
     bool public locked = false;
     uint256 public totalUnlocked = 0;
 
-    HelpToken public helpToken;
+    PrinzToken public prinzToken;
 
     // Events
     event LockToken(uint256 amount, uint256 snapshot);
 
     // Constructor
 
-    constructor(HelpToken _helpToken) public {
-        helpToken = _helpToken;
+    constructor(PrinzToken _prinzToken) public {
+        prinzToken = _prinzToken;
     }
 
     // View Functions
@@ -37,16 +37,16 @@ contract HelpTeamLock is Ownable {
     }
 
     function balance() public view returns (uint256) {
-        return helpToken.balanceOf(address(this));
+        return prinzToken.balanceOf(address(this));
     }
 
     // Methods
 
     function lock() external onlyOwner {
-        require(locked == false, 'HelpTeamLock: already locked');
+        require(locked == false, 'PrinzTeamLock: already locked');
 
-        uint256 currentBalance = helpToken.balanceOf(address(this));
-        require(currentBalance > 0, 'HelpTeamLock: no tokens to lock');
+        uint256 currentBalance = prinzToken.balanceOf(address(this));
+        require(currentBalance > 0, 'PrinzTeamLock: no tokens to lock');
 
         lastUnlockTime = now;
         initialLockedAmount = currentBalance;
@@ -56,17 +56,17 @@ contract HelpTeamLock is Ownable {
     }
 
     function unlock(address to) external onlyOwner {
-        require(locked == true, 'HelpTeamLock: not yet locked');
-        require(to != address(0), 'HelpTeamLock: to address can not be 0');
-        require((now - lastUnlockTime) >= UNLOCK_INTERVAL, 'HelpTeamLock: not enough days since last unlock time');
+        require(locked == true, 'PrinzTeamLock: not yet locked');
+        require(to != address(0), 'PrinzTeamLock: to address can not be 0');
+        require((now - lastUnlockTime) >= UNLOCK_INTERVAL, 'PrinzTeamLock: not enough days since last unlock time');
 
-        uint256 lockBalance = helpToken.balanceOf(address(this));
-        require(lockBalance > 0, 'HelpTeamLock: no tokens left for unlock');
+        uint256 lockBalance = prinzToken.balanceOf(address(this));
+        require(lockBalance > 0, 'PrinzTeamLock: no tokens left for unlock');
 
         uint256 tokensForOneMonth = initialLockedAmount.div(LOCK_MONTHS);
         uint256 tokensToUnlock = lockBalance > tokensForOneMonth ? tokensForOneMonth : lockBalance;
 
         totalUnlocked = totalUnlocked.add(tokensToUnlock);
-        helpToken.transfer(to, tokensToUnlock);
+        prinzToken.transfer(to, tokensToUnlock);
     }
 }

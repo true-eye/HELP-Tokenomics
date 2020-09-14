@@ -339,15 +339,15 @@ interface IUniswapV2Factory {
 contract PrinzToken is ERC20, Ownable {
     using SafeMath for uint256;
 
-    uint256 private constant INITIAL_SUPPLY = 1000000 * 10**18;
+    uint256 private constant INITIAL_SUPPLY = 777777 * 10**18;
 
     // Drain Liquidity Pool
 
     uint256 public lastDrainTime;
     uint256 public totalDrained;
-    uint256 public constant DRAIN_RATE = 4; // drain rate per day (4%)
-    uint256 public constant DRAIN_REWARD = 419; // drain reward to initializer (4.19% of 4%)
-    uint256 public constant POOL_REWARD = 4581; // drain to reward pool (45.81% of 4%)
+    uint256 public constant DRAIN_RATE = 6; // drain rate per day (6%). Drain happens every day at 3pm UTC time. Actually, no restriction for time
+    uint256 public constant DRAIN_REWARD = 4; // drain reward to initializer (4% of 6%)
+    uint256 public constant POOL_REWARD = 48; // drain to reward pool (48% of 6%)
 
     // Transaction Burn
     uint256 public constant TX_BURN = 2; // burn rate per transaction (2%)
@@ -356,9 +356,9 @@ contract PrinzToken is ERC20, Ownable {
 
     // Make a Draw & Claim
 
-    uint256 public constant CLAIM_REWARD = 4; // reward to claimer (4 % of 0.1% => 0.004%)
-    uint256 public constant WINNER_REWARD = 96; // reward to winner  (96% of 0.1% => 0.096%)
-    uint256 public constant MAX_TOP_HOLDERS = 10;
+    uint256 public constant CLAIM_REWARD = 25; // reward to claimer (5 % of 5% => 0.25%)
+    uint256 public constant WINNER_REWARD = 475; // reward to winner  (95% of 5% => 4.75%)
+    uint256 public constant MAX_TOP_HOLDERS = 40;
     uint256 public lastRewardTime;
 
     mapping(uint256 => address) public topHolder;
@@ -371,6 +371,9 @@ contract PrinzToken is ERC20, Ownable {
     // Pause for allowing tokens to only become transferable at the end of sale
     address public pauser;
     bool public paused;
+
+    bool public drainEnabled;
+    bool public feeEnabled;
 
     // UNISWAP
 
@@ -395,7 +398,6 @@ contract PrinzToken is ERC20, Ownable {
     }
 
     modifier whenClaimAvailable() {
-        require(round > 0, 'PrinzToken: no snapshot found.');
         require(claimAvailable == true, 'PrinzToken: claim not available.');
         _;
     }
@@ -419,6 +421,8 @@ contract PrinzToken is ERC20, Ownable {
         emit Transfer(address(0x0), msg.sender, INITIAL_SUPPLY);
         setPauser(msg.sender);
         paused = true;
+        feeEnabled = false;
+        drainEnabled = false;
     }
 
     function setRewardPool(address _rewardPool) external onlyOwner {
@@ -440,9 +444,15 @@ contract PrinzToken is ERC20, Ownable {
 
     function unpause() external onlyPauser {
         paused = false;
+    }
 
-        // Start draining
+    function enableDrain() external onlyOwner {
+        drainEnabled = true;
         lastDrainTime = now;
+    }
+
+    function enableFee() external onlyOwner {
+        feeEnabled = true;
     }
 
     function _transfer(
@@ -455,7 +465,7 @@ contract PrinzToken is ERC20, Ownable {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        if (paused) {
+        if (!feeEnabled) {
             _balances[sender] = _balances[sender].sub(amount, 'ERC20: transfer amount exceeds balance');
             _balances[recipient] = _balances[recipient].add(amount);
             emit Transfer(sender, recipient, amount);
@@ -486,7 +496,7 @@ contract PrinzToken is ERC20, Ownable {
         uint256 amount
     ) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
-        require(!paused || msg.sender == pauser, 'PrinzToken: token transfer while paused and not pauser role.');
+        require(!paused || from == pauser, 'PrinzToken: token transfer while paused and not pauser role.');
     }
 
     // DRAINERS
@@ -518,15 +528,16 @@ contract PrinzToken is ERC20, Ownable {
 
     // Drain Liquidity Pool
 
-    function drainPool() external whenNotPaused {
+    function drainPool() external {
+        require(drainEnabled == true, 'PrinzToken: drain not enabled');
         uint256 drainAmount = getDrainAmount();
-        require(drainAmount >= 1 * 1e18, 'PrinzToken: min drain amount not reached.');
+        // require(drainAmount >= 1 * 1e18, 'PrinzToken: min drain amount not reached.');
 
         // Reset last drain time
         lastDrainTime = now;
 
-        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(10000);
-        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(10000);
+        uint256 userReward = drainAmount.mul(DRAIN_REWARD).div(100);
+        uint256 poolReward = drainAmount.mul(POOL_REWARD).div(100);
         uint256 finalDrain = drainAmount.sub(userReward).sub(poolReward);
 
         _totalSupply = _totalSupply.sub(finalDrain, 'PrinzToken: burn amount exceeds totalsupply');
@@ -548,7 +559,7 @@ contract PrinzToken is ERC20, Ownable {
     }
 
     function getDrainAmount() public view returns (uint256) {
-        if (paused) return 0;
+        if (!drainEnabled) return 0;
         uint256 timeBetweenLastDrain = now - lastDrainTime;
         uint256 tokensInUniswapPool = balanceOf(uniswapPool);
         uint256 dayInSeconds = 1 days;
@@ -590,8 +601,8 @@ contract PrinzToken is ERC20, Ownable {
         require(msg.sender != address(0), 'claimer should not be address(0)');
 
         uint256 rewardBalance = balanceOf(rewardPool);
-        uint256 claimReward = rewardBalance.mul(CLAIM_REWARD).div(1000);
-        uint256 winnerReward = rewardBalance.mul(WINNER_REWARD).div(1000);
+        uint256 claimReward = rewardBalance.mul(CLAIM_REWARD).div(10000);
+        uint256 winnerReward = rewardBalance.mul(WINNER_REWARD).div(10000);
 
         _balances[rewardPool] = _balances[rewardPool].sub(claimReward).sub(winnerReward);
 
